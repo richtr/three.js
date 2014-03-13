@@ -15,8 +15,10 @@ THREE.DeviceOrientationControls = function ( object ) {
 
 	var degtorad = Math.PI / 180;
 
-	var objectRotationMatrix = new THREE.Matrix4();
-	var tmpRotationMatrix    = new THREE.Matrix4();
+	var _objectQuaternion = new THREE.Quaternion();
+        var _tmpQuaternion = new THREE.Quaternion();
+
+        var _ROTATIONFACTOR = 0.7071067811865475; // == Math.sin( ( 90  * degtorad ) / 2 ) == Math.cos( ( 90  * degtorad ) / 2 )
 
 	this.onDeviceOrientationChangeEvent = function( rawEvtData ) {
 		this.deviceOrientation = rawEvtData;
@@ -26,143 +28,71 @@ THREE.DeviceOrientationControls = function ( object ) {
 		this.screenOrientation = window.orientation || 0;
 	};
 
-	this.setObjectRotationMatrixFromDeviceOrientation = function() {
-		var x = this.deviceOrientation.beta  ? this.deviceOrientation.beta  * degtorad : 0; // beta
-		var y = this.deviceOrientation.gamma ? this.deviceOrientation.gamma * degtorad : 0; // gamma
-		var z = this.deviceOrientation.alpha ? this.deviceOrientation.alpha * degtorad : 0; // alpha
+        this.setObjectQuaternionFromDeviceOrientation = function() {
+                var _x = this.deviceOrientation.beta  ? this.deviceOrientation.beta  * degtorad : 0; // beta
+                var _y = this.deviceOrientation.gamma ? this.deviceOrientation.gamma * degtorad : 0; // gamma
+                var _z = this.deviceOrientation.alpha ? this.deviceOrientation.alpha * degtorad : 0; // alpha
 
-		var cX = Math.cos(x);
-		var cY = Math.cos(y);
-		var cZ = Math.cos(z);
-		var sX = Math.sin(x);
-		var sY = Math.sin(y);
-		var sZ = Math.sin(z);
+                var cX = Math.cos( _x/2 );
+                var cY = Math.cos( _y/2 );
+                var cZ = Math.cos( _z/2 );
+                var sX = Math.sin( _x/2 );
+                var sY = Math.sin( _y/2 );
+                var sZ = Math.sin( _z/2 );
 
-		//
-		// ZXY rotation matrix construction.
-		//
-		// (see: http://bit.ly/1fjIr6Y)
-		//
+                //
+                // ZXY quaternion construction.
+                //
 
-		var m11 = cZ * cY - sZ * sX * sY;
-		var m12 = - cX * sZ;
-		var m13 = cY * sZ * sX + cZ * sY;
+                var w = cX * cY * cZ - sX * sY * sZ;
+                var x = sX * cY * cZ - cX * sY * sZ;
+                var y = cX * sY * cZ + sX * cY * sZ;
+                var z = cX * cY * sZ + sX * sY * cZ;
 
-		var m21 = cY * sZ + cZ * sX * sY;
-		var m22 = cZ * cX;
-		var m23 = sZ * sY - cZ * cY * sX;
+                _objectQuaternion.set( x, y, z, w );
 
-		var m31 = - cX * sY;
-		var m32 = sX;
-		var m33 = cX * cY;
+                return _objectQuaternion;
 
-		objectRotationMatrix.set(
-			m11,    m12,    m13,    0,
-			m21,    m22,    m23,    0,
-			m31,    m32,    m33,    0,
-			0,      0,      0,      1
-		);
+        }
 
-		return objectRotationMatrix;
-	};
+        function rotateObjectQuaternionByQuaternionValues( x, y, z, w ) {
 
-	this.remapObjectRotationMatrixFromScreenOrientation = function() {
-                tmpRotationMatrix.copy( objectRotationMatrix );
+                _tmpQuaternion.set( x, y, z, w );
+
+                _tmpQuaternion.normalize();
+
+                _objectQuaternion.multiply( _tmpQuaternion );
+
+                return _objectQuaternion;
+
+        }
+
+	this.remapObjectQuaternionFromScreenOrientation = function() {
 
 		switch( this.screenOrientation ) {
 			case 90:
 			case -270:
-				//
-				// 90 degrees counter-clockwise screen transformation matrix:
-				//
-				//      /  0 -1  0  0  \
-				//      |  1  0  0  0  |
-				//      |  0  0  1  0  |
-				//      \  0  0  0  1  /
-				//
-				// (see: http://bit.ly/1itCOq2)
-				//
-
-				objectRotationMatrix.elements[0]  = - tmpRotationMatrix.elements[4];
-				objectRotationMatrix.elements[4]  =   tmpRotationMatrix.elements[0];
-				objectRotationMatrix.elements[8]  =   tmpRotationMatrix.elements[8];
-
-				objectRotationMatrix.elements[1]  = - tmpRotationMatrix.elements[5];
-				objectRotationMatrix.elements[5]  =   tmpRotationMatrix.elements[1];
-				objectRotationMatrix.elements[9]  =   tmpRotationMatrix.elements[9];
-
-				objectRotationMatrix.elements[2]  = - tmpRotationMatrix.elements[6];
-				objectRotationMatrix.elements[6]  =   tmpRotationMatrix.elements[2];
-				objectRotationMatrix.elements[10] =   tmpRotationMatrix.elements[10];
+                                rotateObjectQuaternionByQuaternionValues( 0, 0, - _ROTATIONFACTOR, _ROTATIONFACTOR );
 
 				break;
 			case 180:
 			case -180:
-				//
-				// 180 degrees counter-clockwise screen transformation matrix:
-				//
-				//      / -1  0  0  0  \
-				//      |  0 -1  0  0  |
-				//      |  0  0  1  0  |
-				//      \  0  0  0  1  /
-				//
-				// (see: http://bit.ly/1dIrx0I)
-				//
-
-				objectRotationMatrix.elements[0]  = - tmpRotationMatrix.elements[0];
-				objectRotationMatrix.elements[4]  = - tmpRotationMatrix.elements[4];
-				objectRotationMatrix.elements[8]  =   tmpRotationMatrix.elements[8];
-
-				objectRotationMatrix.elements[1]  = - tmpRotationMatrix.elements[1];
-				objectRotationMatrix.elements[5]  = - tmpRotationMatrix.elements[5];
-				objectRotationMatrix.elements[9]  =   tmpRotationMatrix.elements[9];
-
-				objectRotationMatrix.elements[2]  = - tmpRotationMatrix.elements[2];
-				objectRotationMatrix.elements[6]  = - tmpRotationMatrix.elements[6];
-				objectRotationMatrix.elements[10] =   tmpRotationMatrix.elements[10];
+                                rotateObjectQuaternionByQuaternionValues( 0, 0, 0, 1 );
 
 				break;
 			case 270:
 			case -90:
-				//
-				// 270 degrees counter-clockwise screen transformation matrix:
-				//
-				//      /  0  1  0  0  \
-				//      | -1  0  0  0  |
-				//      |  0  0  1  0  |
-				//      \  0  0  0  1  /
-				//
-				// (see: http://bit.ly/1h73sQ0)
-				//
-
-				objectRotationMatrix.elements[0]  =   tmpRotationMatrix.elements[4];
-				objectRotationMatrix.elements[4]  = - tmpRotationMatrix.elements[0];
-				objectRotationMatrix.elements[8]  =   tmpRotationMatrix.elements[8];
-
-				objectRotationMatrix.elements[1]  =   tmpRotationMatrix.elements[5];
-				objectRotationMatrix.elements[5]  = - tmpRotationMatrix.elements[1];
-				objectRotationMatrix.elements[9]  =   tmpRotationMatrix.elements[9];
-
-				objectRotationMatrix.elements[2]  =   tmpRotationMatrix.elements[6];
-				objectRotationMatrix.elements[6]  = - tmpRotationMatrix.elements[2];
-				objectRotationMatrix.elements[10] =   tmpRotationMatrix.elements[10];
+				rotateObjectQuaternionByQuaternionValues( 0, 0, _ROTATIONFACTOR, _ROTATIONFACTOR );
 
 				break;
 			default:
-				//
-				// 0 degrees screen transformation matrix:
-				//
-				//      /  1  0  0  0  \
-				//      |  0  1  0  0  |
-				//      |  0  0  1  0  |
-				//      \  0  0  0  1  /
-				//
-				// This transformation is the same as the identity matrix so we need do nothing
+				// Same as input deviceorientation so do nothing
+                                // rotateObjectQuaternionByQuaternionValues( 0, 0, 1, 0  );
 
 				break;
 		}
 
-		return objectRotationMatrix;
+		return _objectQuaternion;
 	};
 
 	this.update = function( delta ) {
@@ -170,11 +100,11 @@ THREE.DeviceOrientationControls = function ( object ) {
 			return;
 		}
 
-		this.setObjectRotationMatrixFromDeviceOrientation();
+		this.setObjectQuaternionFromDeviceOrientation();
 
-		this.remapObjectRotationMatrixFromScreenOrientation();
+		this.remapObjectQuaternionFromScreenOrientation();
 
-		this.object.quaternion.setFromRotationMatrix( objectRotationMatrix );
+		this.object.quaternion.copy( _objectQuaternion );
 	};
 
 	function bind( scope, fn ) {
