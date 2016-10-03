@@ -1054,10 +1054,12 @@ GLTFParser.prototype.loadMaterials = function() {
 
 				}
 
-				if ( khr_material.transparent )
+
+				if ( khr_material.values.transparent )
 				{
 
 					materialParams.transparent = true;
+					materialParams.opacity = khr_material.values.transparency;
 
 				}
 
