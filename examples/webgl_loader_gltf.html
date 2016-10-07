@@ -93,7 +93,7 @@
 		<a href="http://threejs.org" target="_blank">three.js</a> -
 		<a href="https://github.com/KhronosGroup/glTF" target="_blank">glTF</a> loader -
 		<br></br>
-		monster by <a href="http://www.3drt.com/downloads.htm" target="_blank">3drt</a> -
+		virtual city and monster by <a href="http://www.3drt.com/downloads.htm" target="_blank">3drt</a> -
 		COLLADA duck by Sony - other models courtesy <a href="http://cesiumjs.org/" target="_blank">Cesium</a>
 		</div>
 	<div id="container">
@@ -303,7 +303,8 @@
 						}
 
 						updateCamerasList();
-						switchCamera(1);
+						// pick a random camera
+						switchCamera( Math.floor(Math.random() * ((gltf.cameras.length - 1) - 1 + 1) + 1 ));
 
 					} else {
 
@@ -387,6 +388,12 @@
 			}
 
 			var sceneList = [
+				{
+					name : "Virtual City", url : "./models/gltf/VC/%s/VC.gltf",
+					cameraPos: new THREE.Vector3(0, 0, 0),
+					addLights:true,
+					shadows:true
+				},
 				{
 					name : "Monster", url : "./models/gltf/monster/%s/monster.gltf",
 					cameraPos: new THREE.Vector3(30, 10, 70),
